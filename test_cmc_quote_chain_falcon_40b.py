@@ -1,30 +1,24 @@
+import os
 from dotenv import load_dotenv
+from chain import cmc_quotes_chain 
+from langchain.chat_models import ChatOpenAI
+from langchain.chains import APIChain
+import chain.all_templates
+from langchain.prompts import PromptTemplate
 from falcon_llm import FalconLLM
 from falcon_llm import LLMContentHandler
-from typing import Dict, Optional
+from typing import Dict
 import json
-from langchain.chains import RetrievalQA
-import os
-import pickle
-from langchain.vectorstores import VectorStore
 import logging
-from langchain.prompts.prompt import PromptTemplate
+
 
 logging.basicConfig(level=logging.INFO)
-
 
 # if getattr(sys, 'frozen', False):
 #     script_location = pathlib.Path(sys.executable).parent.resolve()
 # else:
 #     script_location = pathlib.Path(__file__).parent.resolve()
 load_dotenv(dotenv_path= '.env')
-
-chain_type = os.getenv("CHAIN_TYPE")
-
-vectorstore: Optional[VectorStore] = None
-with open("data-swft.pkl", "rb") as f:
-        vectorstore = pickle.load(f)
-
 class ContentHandler(LLMContentHandler):
     content_type = "application/json"
     accepts = "application/json"
@@ -38,7 +32,6 @@ class ContentHandler(LLMContentHandler):
         return response_json[0]["generated_text"]
 
 content_handler = ContentHandler()
-
 llm=FalconLLM(
         endpoint_name="huggingface-pytorch-tgi-inference-2023-06-08-09-34-28-551", 
         credentials_profile_name="default", 
@@ -59,23 +52,12 @@ llm=FalconLLM(
 		content_handler=content_handler,
 		verbose=True,
 )
-combine_prompt_template = """Given the following extracted parts of a long document and a question, create a final answer. 
-If you don't know the answer, just say that you don't know. Don't try to make up an answer.
-QUESTION: {question}
-ANSWER:{summaries}
-FINAL ANSWER:"""
-COMBINE_PROMPT = PromptTemplate(
-    template=combine_prompt_template, input_variables=["summaries", "question"]
-)
-doc_search_swft = RetrievalQA.from_chain_type(
-    llm=llm,
-    chain_type="map_reduce", 
-	chain_type_kwargs={
-          "combine_prompt":COMBINE_PROMPT,
-	},
-    # retriever=vectorstore.as_retriever(search_type="mmr",search_kwargs={"k":1}),
-    retriever=vectorstore.as_retriever(),
-    verbose=True,
-)
-user_inputs=input("Prompt:")
-print(doc_search_swft(user_inputs))
+headers = {
+  'Accepts': 'application/json',
+  'X-CMC_PRO_API_KEY': os.getenv("CMC_API_KEY"),
+}
+# cmc_currency_map_api=APIChain.from_llm_and_api_docs(llm=llm,api_docs=all_templates.cmc_currency_map_api_doc,headers=headers,verbose=True)
+# cmc_quotes_api=APIChain.from_llm_and_api_docs(llm=llm,api_docs=all_templates.cmc_quote_lastest_api_doc,headers=headers,verbose=True)
+chain = cmc_quotes_chain.CMCQuotesChain.from_llm(llm=llm,headers=headers,verbose=True)
+input=input("Send:") 
+print(f"Output:{chain(inputs=input)}")

@@ -8,6 +8,9 @@ from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.llms.base import LLM
 from langchain.llms.utils import enforce_stop_tokens
 from asyncer import asyncify
+import logging
+
+logger=logging.getLogger(__name__)
 
 INPUT_TYPE = TypeVar("INPUT_TYPE", bound=Union[str, List[str]])
 OUTPUT_TYPE = TypeVar("OUTPUT_TYPE", bound=Union[str, List[List[float]]])
@@ -227,6 +230,7 @@ class FalconLLM(LLM):
         _endpoint_kwargs = self.endpoint_kwargs or {}
 
         body = self.content_handler.transform_input(prompt, _model_kwargs)
+        logger.info(f"Prompt:\n{prompt}")
         content_type = self.content_handler.content_type
         accepts = self.content_handler.accepts
 
@@ -243,12 +247,13 @@ class FalconLLM(LLM):
             raise ValueError(f"Error raised by inference endpoint: {e}")
 
         text = self.content_handler.transform_output(response["Body"])
+        sta=text.find(prompt)+len(prompt)
+        text=text[sta:]
         if stop is not None:
             # This is a bit hacky, but I can't figure out a better way to enforce
             # stop tokens when making calls to the sagemaker endpoint.
             text = enforce_stop_tokens(text, stop)
-
-        return text
+        return text 
 
     async def _acall(
         self,
@@ -274,6 +279,7 @@ class FalconLLM(LLM):
         _endpoint_kwargs = self.endpoint_kwargs or {}
 
         body = self.content_handler.transform_input(prompt, _model_kwargs)
+        logger.info(f"Prompt:\n{prompt}")
         content_type = self.content_handler.content_type
         accepts = self.content_handler.accepts
 
@@ -290,9 +296,11 @@ class FalconLLM(LLM):
             raise ValueError(f"Error raised by inference endpoint: {e}")
 
         text = self.content_handler.transform_output(response["Body"])
+        sta=text.find(prompt)+len(prompt)
+        text=text[sta:]
+        print(f"Stop:{stop}")
         if stop is not None:
             # This is a bit hacky, but I can't figure out a better way to enforce
             # stop tokens when making calls to the sagemaker endpoint.
             text = enforce_stop_tokens(text, stop)
-
-        return text
+        return text 

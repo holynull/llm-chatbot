@@ -2,7 +2,7 @@
 import pickle
 
 from langchain.document_loaders import CSVLoader
-from langchain.embeddings import OpenAIEmbeddings
+from langchain.embeddings import HuggingFaceEmbeddings 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores.faiss import FAISS
 
@@ -33,11 +33,11 @@ def ingest_docs():
     loader = CSVLoader(fileNmae)
     raw_documents = loader.load()
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
+        chunk_size=500,
         chunk_overlap=0,
     )
     documents = text_splitter.split_documents(raw_documents)
-    embeddings = OpenAIEmbeddings()
+    embeddings = HuggingFaceEmbeddings()
     if os.path.exists(f"{script_location}/{name}.pkl"):
         with open(f"{name}.pkl", "rb") as f:
             vectorstore = pickle.load(f)

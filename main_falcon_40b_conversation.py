@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from langchain.prompts.prompt import PromptTemplate
 import json
 from falcon_llm import FalconLLM,LLMContentHandler
-from langchain.memory import ConversationBufferMemory,ConversationTokenBufferMemory
+from langchain.memory import ConversationTokenBufferMemory
 from langchain.callbacks.base import BaseCallbackManager,BaseCallbackHandler
 from langchain.callbacks.base import LLMResult
 from typing import Any, Dict, Optional
@@ -51,15 +51,13 @@ class ContentHandler(LLMContentHandler):
         response_json = json.loads(output.read().decode("utf-8"))
         generated_text=response_json[0]["generated_text"]
         logging.info(f"Generated Text:\n{generated_text}")
-        sta=generated_text.rfind("AI:")+3;
-        end=generated_text.rfind("\nHuman:");
-        logging.info(f"Start at: {sta}, end at {end}")
-        if end==-1 or end<=sta:
-            resp= generated_text[sta:]
-        else:
-            resp= generated_text[sta:end]
-        logging.info(f"Response str:{resp}")
-        return resp
+        # end=generated_text.rfind("\nHuman:");
+        # if end==-1:
+        #     resp= generated_text
+        # else:
+        #     resp= generated_text[0:end]
+        # logging.info(f"Response str:{resp}")
+        return generated_text
 
 content_handler = ContentHandler()
 
@@ -198,8 +196,6 @@ class CallbackHandler(BaseCallbackHandler):
 DEFAULT_TEMPLATE = """The following is a friendly conversation between a human and an AI. The AI is talkative and provides lots of specific details from its context. If the AI does not know the answer to a question, it truthfully says it does not know.
 
 Current conversation:
-Human: Hi. Nice to meet you.
-AI: Hi, Nice to meet you, too.
 {history}
 Human: {input}
 AI:"""
@@ -236,7 +232,7 @@ async def websocket_endpoint(websocket: WebSocket):
             #     prompt=PROMPT.format(input=question)
             # else:
             #     prompt=prompt+"\n\nHuman: "+question+"\nAI:"
-            await conversationChain.apredict(input=question)
+            await conversationChain.apredict(input=question,stop=["\nHuman:"])
             # prompt=resp
             # logging.info(f"Response fromm LLM:\n{resp}")
             # sta=resp.rfind("Human: "+last_input)+len("Human: "+last_input)+1
