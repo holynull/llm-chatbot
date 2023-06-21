@@ -77,7 +77,7 @@ RESPONSE SCHEMA
 """
 
 cmc_quote_lastest_api_doc="""
-Base URL:https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest
+Base URL: https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest
 
 Quotes Latest v2 API Documentation
 Returns the latest market quote for 1 or more cryptocurrencies. Use the "convert" option to return market values in multiple fiat and cryptocurrency conversions in the same call.
@@ -144,3 +144,60 @@ quotes_chain_answer="""Use the following pieces of context to answer the questio
 
 Question: {question}
 Helpful Answer:"""
+
+cmc_quote_historical_api_doc="""
+## Instroduction
+Base URL: https://pro-api.coinmarketcap.com/v3/cryptocurrency/quotes/historical  
+Returns an interval of historic market quotes for any cryptocurrency based on time and interval parameters.
+
+## Technical Notes
+- A historic quote for every "interval" period between your "time_start" and "time_end" will be returned.
+- If a "time_start" is not supplied, the "interval" will be applied in reverse from "time_end".
+- If "time_end" is not supplied, it defaults to the current time.
+- At each "interval" period, the historic quote that is closest in time to the requested time will be returned.
+- If no historic quotes are available in a given "interval" period up until the next interval period, it will be skipped.
+
+## Implementation Tips
+- Want to get the last quote of each UTC day? Don't use "interval=daily" as that returns the first quote. Instead use "interval=24h" to repeat a specific timestamp search every 24 hours and pass ex. "time_start=2019-01-04T23:59:00.000Z" to query for the last record of each UTC day.
+- This endpoint supports requesting multiple cryptocurrencies in the same call. Please note the API response will be wrapped in an additional object in this case.
+
+## Interval Options
+There are 2 types of time interval formats that may be used for "interval".
+
+The first are calendar year and time constants in UTC time:
+"hourly" - Get the first quote available at the beginning of each calendar hour.
+"daily" - Get the first quote available at the beginning of each calendar day.
+"weekly" - Get the first quote available at the beginning of each calendar week.
+"monthly" - Get the first quote available at the beginning of each calendar month.
+"yearly" - Get the first quote available at the beginning of each calendar year.
+
+The second are relative time intervals.
+"m": Get the first quote available every "m" minutes (60 second intervals). Supported minutes are: "5m", "10m", "15m", "30m", "45m".
+"h": Get the first quote available every "h" hours (3600 second intervals). Supported hour intervals are: "1h", "2h", "3h", "4h", "6h", "12h".
+"d": Get the first quote available every "d" days (86400 second intervals). Supported day intervals are: "1d", "2d", "3d", "7d", "14d", "15d", "30d", "60d", "90d", "365d".
+
+## Parameters
+id: One or more comma-separated CoinMarketCap cryptocurrency IDs. Example: "1,2"
+symbol: Alternatively pass one or more comma-separated cryptocurrency symbols. Example: "BTC,ETH". At least one "id" or "symbol" is required for this request.
+time_start: Timestamp (Unix or ISO 8601) to start returning quotes for. Optional, if not passed, we'll return quotes calculated in reverse from "time_end".
+time_end: Timestamp (Unix or ISO 8601) to stop returning quotes for (inclusive). Optional, if not passed, we'll default to the current time. If no "time_start" is passed, we return quotes in reverse order starting from this time.
+count: Default 10. The number of interval periods to return results for. Optional, required if both "time_start" and "time_end" aren't supplied. The default is 10 items. The current query limit is 10000.
+interval: Default "5m". Interval of time to return data points for. See details in endpoint description. Valid values: "yearly" "monthly" "weekly" "daily" "hourly" "5m" "10m" "15m""30m""45m""1h""2h""3h""4h""6h""12h""24h""1d""2d""3d""7d""14d""15d""30d""60d""90d""365d"
+convert: By default market quotes are returned in USD. Optionally calculate market quotes in up to 3 other fiat currencies or cryptocurrencies.
+
+## Response
+id: The CoinMarketCap cryptocurrency ID.
+name: The cryptocurrency name.
+symbol: The cryptocurrency symbol.
+quotes: An array of quotes for each interval for this cryptocurrency.
+
+### Item of quotes
+timestamp: Timestamp of when this historical quote was recorded.
+quote: A map of market details for this quote in different currency conversions. The default map included is USD.
+
+### Quote map
+price: Aggregate 24 hour adjusted volume for all market pairs tracked for this cryptocurrency at the current historical interval.
+volume_24hr: Aggregate 24 hour adjusted volume for all market pairs tracked for this cryptocurrency at the current historical interval.
+market_cap: Number of market pairs available at the current historical interval.
+timestamp: Timestamp (ISO 8601) of when the conversion currency's current value was referenced for this conversion.
+"""

@@ -22,7 +22,9 @@ from callback import AgentCallbackHandler
 from langchain.callbacks.manager import AsyncCallbackManager
 from langchain.chat_models import ChatOpenAI
 from chain.cmc_quotes_chain import CMCQuotesChain
+from chain.cmc_quotes_historical_chain import CMCQuotesHistoricalChain 
 import os
+from datetime import datetime
 
 
 logging.basicConfig(level=logging.INFO)
@@ -131,12 +133,19 @@ def get_agent(
         'X-CMC_PRO_API_KEY': os.getenv("CMC_API_KEY"),
     }
     cmc_quotes_api=CMCQuotesChain.from_llm(llm=llm_agent,headers=headers,verbose=True)
+    cmc_quotes_historical_api=CMCQuotesHistoricalChain.from_llm(llm=llm_agent,headers=headers,verbose=True)
     tools = [
         Tool(
-            name = "Cryptocurrency Latest Quotes, Exchange rate and Price System",
+            name = "Cryptocurrency Latest Quotes System",
             func=cmc_quotes_api.run,
-            description="When you need to inquire about the latest cryptocurrency market trends or the latest cryptocurrency prices, you can use this tool. The input should be a complete question, and use the original language.",
+            description="When you need to inquire about the latest cryptocurrency market trends or the latest cryptocurrency prices or the latest volume or the latest exchange rate, you can use this tool. The input should be a complete question, and use the original language.",
             coroutine=cmc_quotes_api.arun
+        ),
+        Tool(
+            name = "Cryptocurrency Historical Quotes System",
+            func=cmc_quotes_historical_api.run,
+            description="When you need to inquire about the historical cryptocurrency market trends or the historical cryptocurrency prices or the historical volume or the historical exchange rate, you can use this tool. The input should be a complete question, and use the original language.",
+            coroutine=cmc_quotes_historical_api.arun
         ),
         Tool(
             name = "QA SWFT System",
@@ -163,10 +172,20 @@ def get_agent(
     
     # memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
     memory = ConversationTokenBufferMemory(llm=llm_agent,memory_key="chat_history",max_token_limit=3000,return_messages=True)
+    PREFIX = """Assistant is a large language model trained by OpenAI.
+
+Assistant is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Assistant is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
+
+Assistant is constantly learning and improving, and its capabilities are constantly evolving. It is able to process and understand large amounts of text, and can use this knowledge to provide accurate and informative responses to a wide range of questions. Additionally, Assistant is able to generate its own text based on the input it receives, allowing it to engage in discussions and provide explanations and descriptions on a wide range of topics.
+
+Overall, Assistant is a powerful system that can help with a wide range of tasks and provide valuable insights and information on a wide range of topics. Whether you need help with a specific question or just want to have a conversation about a particular topic, Assistant is here to assist.
+It is {system_time} now."""
+    system_template=PromptTemplate(input_variables=["system_time"],template=PREFIX)
     agent_excutor = initialize_agent(
         tools=tools,
         llm=llm_agent, 
         agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION,
+        system_message=system_template.format(system_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
         verbose=True, 
         memory=memory,
         callback_manager=agent_cb_manager,
