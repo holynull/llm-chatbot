@@ -27,6 +27,7 @@ from langchain.prompts import MessagesPlaceholder
 
 
 logging.basicConfig(level=logging.INFO)
+logger=logging.getLogger(__name__)
 
 if getattr(sys, 'frozen', False):
     script_location = Path(sys.executable).parent.resolve()
@@ -61,13 +62,6 @@ class ContentHandler(LLMContentHandler):
     def transform_output(self, output: bytes) -> str:
         response_json = json.loads(output.read().decode("utf-8"))
         generated_text=response_json[0]["generated_text"]
-        logging.info(f"Generated Text:\n{generated_text}")
-        # end=generated_text.rfind("\nHuman:");
-        # if end==-1:
-        #     resp= generated_text
-        # else:
-        #     resp= generated_text[0:end]
-        # logging.info(f"Response str:{resp}")
         return generated_text
 
 content_handler = ContentHandler()
@@ -84,12 +78,14 @@ llm=FalconLLM(
                 "repetition_penalty": 1.03,
                 "max_new_tokens":500,
                 "temperature":0.8,
+				"return_full_text":False,
                 # "max_length":1512,
                 # "num_return_sequences":10,
                 # "stop": ["\nHuman:"],
                 }
             },
         content_handler=content_handler,
+		verbose=True,
     )
 
 def get_agent(
@@ -109,9 +105,10 @@ def get_agent(
     doc_search_swft = RetrievalQA.from_chain_type(
         llm=llm, 
         chain_type="map_reduce", 
-        retriever=vcs_swft.as_retriever(),
+        retriever=vcs_swft.as_retriever(search_kwargs={"k":8}),
         chain_type_kwargs={
           "combine_prompt":COMBINE_PROMPT,
+		  "verbose":True,
         },
         verbose=True
         )
@@ -119,9 +116,10 @@ def get_agent(
         llm=llm, 
         chain_type="map_reduce", 
         chain_type_kwargs={
-           "combine_prompt":COMBINE_PROMPT,
+        	"combine_prompt":COMBINE_PROMPT,
+			"verbose":True,
          },
-        retriever=vcs_path.as_retriever(),
+        retriever=vcs_path.as_retriever(search_kwargs={"k":8}),
         verbose=True
         )
     tools = [
@@ -150,7 +148,7 @@ def get_agent(
     llm_agent = ChatOpenAI(
         temperature=0.9, 
         # model="gpt-4",
-        model="gpt-3.5-turbo-0613",
+        # model="gpt-3.5-turbo-0613",
         verbose=True,
     )
     # memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
@@ -196,7 +194,7 @@ async def websocket_endpoint(websocket: WebSocket):
             end_resp = ChatResponse(sender="bot", message="", type="end")
             await websocket.send_json(end_resp.dict())
         except WebSocketDisconnect:
-            logging.info("websocket disconnect")
+            logger.info("websocket disconnect")
             break
         except Exception as e:
             logging.error(e)

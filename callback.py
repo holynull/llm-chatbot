@@ -12,51 +12,51 @@ class AgentCallbackHandler(AsyncCallbackHandler):
     def __init__(self, websocket):
         self.websocket = websocket
 
-    def on_llm_start(
-        self, serialized: Dict[str, Any], prompts: List[str], **kwargs: Any
-    ) -> None:
+    # def on_llm_start(
+    #     self, serialized: Dict[str, Any], prompts: List[str], **kwargs: Any
+    # ) -> None:
         """Run when LLM starts running."""
-        print(f"ON_LLM_START")
+        # print(f"ON_LLM_START")
         # resp = ChatResponse(
         #     sender="bot", message="Synthesizing question...", type="info"
         # )
         # self.websocket.send_json(resp.dict())
 
-    def on_llm_end(
-        self,
-        response: LLMResult,
-        *,
-        run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        **kwargs: Any,
-    ) -> None:
+    # def on_llm_end(
+    #     self,
+    #     response: LLMResult,
+    #     *,
+    #     run_id: UUID,
+    #     parent_run_id: Optional[UUID] = None,
+    #     **kwargs: Any,
+    # ) -> None:
         """Run when LLM ends running.""" 
-        print(f"ON_LLM_END: {response.dict}")
+        # print(f"ON_LLM_END: {response.dict}")
     # def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
     #     print(f"llm new token: {token}")
     #     resp = ChatResponse(sender="bot", message=token, type="stream")
     #     self.websocket.send_json(resp.dict())
 
-    def on_chain_start(
-        self,
-        serialized: Dict[str, Any],
-        inputs: Dict[str, Any],
-        *,
-        run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        **kwargs: Any,
-    ) -> None:
-        print(f"ON_CHAIN_START: Inputs: {inputs}")
+    # def on_chain_start(
+    #     self,
+    #     serialized: Dict[str, Any],
+    #     inputs: Dict[str, Any],
+    #     *,
+    #     run_id: UUID,
+    #     parent_run_id: Optional[UUID] = None,
+    #     **kwargs: Any,
+    # ) -> None:
+        # print(f"ON_CHAIN_START: Inputs: {inputs}")
 
-    def on_chain_end(
-        self,
-        outputs: Dict[str, Any],
-        *,
-        run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        **kwargs: Any,
-    ) -> Any:
-        print(f"ON_CHAIN_END: Outputs: {outputs}")
+    # def on_chain_end(
+    #     self,
+    #     outputs: Dict[str, Any],
+    #     *,
+    #     run_id: UUID,
+    #     parent_run_id: Optional[UUID] = None,
+    #     **kwargs: Any,
+    # ) -> Any:
+        # print(f"ON_CHAIN_END: Outputs: {outputs}")
         # resp = ChatResponse(sender="bot", message=outputs['output'], type="stream")
         # await self.websocket.send_json(resp.dict())
         # resp = ChatResponse(sender="bot", message=outputs['output'], type="stream")
@@ -69,28 +69,28 @@ class AgentCallbackHandler(AsyncCallbackHandler):
         #         sender="bot", message="Synthesizing question...", type="info"
         #     )
         # self.websocket.send_json(resp.dict())
-    def on_tool_start(
-        self,
-        serialized: Dict[str, Any],
-        input_str: str,
-        *,
-        run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        **kwargs: Any,
-    ) -> None:
+    # def on_tool_start(
+    #     self,
+    #     serialized: Dict[str, Any],
+    #     input_str: str,
+    #     *,
+    #     run_id: UUID,
+    #     parent_run_id: Optional[UUID] = None,
+    #     **kwargs: Any,
+    # ) -> None:
         """Run when tool starts running."""
-        print(f"ON_TOOL_START: input: {input_str}")
+        # print(f"ON_TOOL_START: input: {input_str}")
 
-    def on_tool_end(
-        self,
-        output: str,
-        *,
-        run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        **kwargs: Any,
-    ) -> None:
+    # def on_tool_end(
+    #     self,
+    #     output: str,
+    #     *,
+    #     run_id: UUID,
+    #     parent_run_id: Optional[UUID] = None,
+    #     **kwargs: Any,
+    # ) -> None:
         """Run when tool ends running."""
-        print(f"ON_TOOL_END: output: {output}")
+        # print(f"ON_TOOL_END: output: {output}")
     
     async def on_agent_finish(
         self,
@@ -107,13 +107,13 @@ class AgentCallbackHandler(AsyncCallbackHandler):
         
 
     
-    def on_agent_action(
-        self,
-        action: AgentAction,
-        *,
-        run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        **kwargs: Any,
-    ) -> None:
+    # def on_agent_action(
+    #     self,
+    #     action: AgentAction,
+    #     *,
+    #     run_id: UUID,
+    #     parent_run_id: Optional[UUID] = None,
+    #     **kwargs: Any,
+    # ) -> None:
         """Run on agent action."""
-        print(f"ON_AGENT_ACTION: tool: {action.tool}")
+        # print(f"ON_AGENT_ACTION: tool: {action.tool}")

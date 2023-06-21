@@ -228,9 +228,9 @@ class FalconLLM(LLM):
         """
         _model_kwargs = self.model_kwargs or {}
         _endpoint_kwargs = self.endpoint_kwargs or {}
-
+        if run_manager:
+            run_manager.on_text(prompt, color="yellow", end="\n", verbose=self.verbose)
         body = self.content_handler.transform_input(prompt, _model_kwargs)
-        logger.info(f"Prompt:\n{prompt}")
         content_type = self.content_handler.content_type
         accepts = self.content_handler.accepts
 
@@ -247,12 +247,14 @@ class FalconLLM(LLM):
             raise ValueError(f"Error raised by inference endpoint: {e}")
 
         text = self.content_handler.transform_output(response["Body"])
-        sta=text.find(prompt)+len(prompt)
-        text=text[sta:]
+        # sta=text.find(prompt)+len(prompt)
+        # text=text[sta:]
         if stop is not None:
             # This is a bit hacky, but I can't figure out a better way to enforce
             # stop tokens when making calls to the sagemaker endpoint.
             text = enforce_stop_tokens(text, stop)
+        if run_manager:
+            run_manager.on_text(text=text, color="yellow", end="\n", verbose=self.verbose)
         return text 
 
     async def _acall(
@@ -277,9 +279,9 @@ class FalconLLM(LLM):
         """
         _model_kwargs = self.model_kwargs or {}
         _endpoint_kwargs = self.endpoint_kwargs or {}
-
+        if run_manager:
+            await run_manager.on_text(prompt, color="yellow", end="\n", verbose=self.verbose)
         body = self.content_handler.transform_input(prompt, _model_kwargs)
-        logger.info(f"Prompt:\n{prompt}")
         content_type = self.content_handler.content_type
         accepts = self.content_handler.accepts
 
@@ -296,11 +298,12 @@ class FalconLLM(LLM):
             raise ValueError(f"Error raised by inference endpoint: {e}")
 
         text = self.content_handler.transform_output(response["Body"])
-        sta=text.find(prompt)+len(prompt)
-        text=text[sta:]
-        print(f"Stop:{stop}")
+        # sta=text.find(prompt)+len(prompt)
+        # text=text[sta:]
         if stop is not None:
             # This is a bit hacky, but I can't figure out a better way to enforce
             # stop tokens when making calls to the sagemaker endpoint.
             text = enforce_stop_tokens(text, stop)
+        if run_manager:
+            await run_manager.on_text(text=text, color="yellow", end="\n", verbose=self.verbose)
         return text 

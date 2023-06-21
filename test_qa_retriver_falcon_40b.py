@@ -49,8 +49,9 @@ llm=FalconLLM(
                 # "top_p": 0.9,
                 # "top_k": 10,
                 "repetition_penalty": 1.03,
-                "max_new_tokens":1024,
+                "max_new_tokens":200,
                 "temperature":0.8,
+				"return_full_text":False,
                 # "max_length":1024,
                 # "num_return_sequences":10,
                 # "stop": ["\nHuman:"],
@@ -72,6 +73,7 @@ doc_search_swft = RetrievalQA.from_chain_type(
     chain_type="map_reduce", 
 	chain_type_kwargs={
           "combine_prompt":COMBINE_PROMPT,
+		  "verbose":True,
 	},
     # retriever=vectorstore.as_retriever(search_type="mmr",search_kwargs={"k":1}),
     retriever=vectorstore.as_retriever(),
