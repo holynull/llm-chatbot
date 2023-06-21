@@ -93,7 +93,7 @@ def get_agent(
     agent_cb_handler) -> AgentExecutor:
     llm_agent = ChatOpenAI(
         temperature=0.9, 
-        # model="gpt-4",
+        model="gpt-4",
         verbose=True,
     )
     agent_cb_manager = AsyncCallbackManager([agent_cb_handler])
