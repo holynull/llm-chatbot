@@ -181,7 +181,7 @@ class CMCQuotesChain(Chain):
             input_variables=["original_question"],
             template=all_templates.consider_what_is_the_product
         )
-        product_llm=OpenAI(
+        product_llm=ChatOpenAI(
             # model_name="gpt-4",
             temperature=0,
             request_timeout=60,

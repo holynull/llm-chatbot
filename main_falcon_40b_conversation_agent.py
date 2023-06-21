@@ -94,7 +94,6 @@ def get_agent(
     llm_agent = ChatOpenAI(
         temperature=0.9, 
         # model="gpt-4",
-        # model="gpt-3.5-turbo-0613",
         verbose=True,
     )
     agent_cb_manager = AsyncCallbackManager([agent_cb_handler])
@@ -134,7 +133,7 @@ def get_agent(
     cmc_quotes_api=CMCQuotesChain.from_llm(llm=llm_agent,headers=headers,verbose=True)
     tools = [
         Tool(
-            name = "Latest Quotes and Price System",
+            name = "Cryptocurrency Latest Quotes, Exchange rate and Price System",
             func=cmc_quotes_api.run,
             description="When you need to inquire about the latest cryptocurrency market trends or the latest cryptocurrency prices, you can use this tool. The input should be a complete question, and use the original language.",
             coroutine=cmc_quotes_api.arun
