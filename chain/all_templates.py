@@ -84,12 +84,9 @@ Returns the latest market quote for 1 or more cryptocurrencies. Use the "convert
 There is no need to use aux to specify a specific market data, and the returned quote contains all market data.
 
 PARAMETERS:
-id: One or more comma-separated cryptocurrency CoinMarketCap IDs. Example: 1,2
 slug: Alternatively pass a comma-separated list of cryptocurrency slugs. Example: "bitcoin,ethereum"
 symbol: Alternatively pass one or more comma-separated cryptocurrency symbols. Example: "BTC,ETH". At least one "id" or "slug" or "symbol" is required for this request.
 convert: Optionally calculate market quotes in up to 120 currencies at once by passing a comma-separated list of cryptocurrency or fiat currency symbols. Each additional convert option beyond the first requires an additional call credit. A list of supported fiat options can be found here. Each conversion is returned in its own "quote" object.
-convert_id: Optionally calculate market quotes by CoinMarketCap ID instead of symbol. This option is identical to convert outside of ID format. Ex: convert_id=1,2781 would replace convert=BTC,USD in your query. This parameter cannot be used when convert is used.
-aux: Default "num_market_pairs,cmc_rank,date_added,tags,platform,max_supply,circulating_supply,total_supply,is_active,is_fiat". Optionally specify a comma-separated list of supplemental data fields to return. Pass num_market_pairs,cmc_rank,date_added,tags,platform,max_supply,circulating_supply,total_supply,market_cap_by_total_supply,volume_24h_reported,volume_7d,volume_7d_reported,volume_30d,volume_30d_reported,is_active,is_fiat to include all auxiliary fields.
 
 RESPONSE
 id: The unique CoinMarketCap ID for this cryptocurrency.
@@ -121,10 +118,10 @@ volume_30d_reported: Rolling 30 day reported volume in the specified currency. T
 market_cap: Market cap in the specified currency.
 market_cap_dominance: Market cap dominance in the specified currency.
 fully_diluted_market_cap: Fully diluted market cap in the specified currency.
-percent_change_1h: 1 hour change in the specified currency.
-percent_change_24h: 24 hour change in the specified currency.
-percent_change_7d: 7 day change in the specified currency.
-percent_change_30d: 30 day change in the specified currency.
+percent_change_1h: Percentage price increase within 1 hour in the specified currency.
+percent_change_24h: Percentage price increase within 24 hour in the specified currency.
+percent_change_7d: Percentage price increase within 7 day in the specified currency.
+percent_change_30d: Percentage price increase within 30 day in the specified currency.
 """
 
 quotes_chain_template="""

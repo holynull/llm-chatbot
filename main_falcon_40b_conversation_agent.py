@@ -10,10 +10,8 @@ from dotenv import load_dotenv
 from langchain.prompts.prompt import PromptTemplate
 import json
 from falcon_llm import FalconLLM,LLMContentHandler
-from langchain.memory import ConversationTokenBufferMemory,ConversationBufferMemory
+from langchain.memory import ConversationTokenBufferMemory
 from typing import  Dict 
-from sqlalchemy import UUID
-from langchain.schema import AgentAction,AgentFinish
 from langchain.agents import initialize_agent,AgentType,AgentExecutor
 from langchain.vectorstores.base import VectorStore
 from langchain.utilities import GoogleSerperAPIWrapper
@@ -23,7 +21,8 @@ import pickle
 from callback import AgentCallbackHandler 
 from langchain.callbacks.manager import AsyncCallbackManager
 from langchain.chat_models import ChatOpenAI
-from langchain.prompts import MessagesPlaceholder
+from chain.cmc_quotes_chain import CMCQuotesChain
+import os
 
 
 logging.basicConfig(level=logging.INFO)
@@ -78,20 +77,26 @@ llm=FalconLLM(
                 "repetition_penalty": 1.03,
                 "max_new_tokens":500,
                 "temperature":0.8,
-				"return_full_text":False,
+                "return_full_text":False,
                 # "max_length":1512,
                 # "num_return_sequences":10,
                 # "stop": ["\nHuman:"],
                 }
             },
         content_handler=content_handler,
-		verbose=True,
+        verbose=True,
     )
 
 def get_agent(
     vcs_swft: VectorStore,
     vcs_path: VectorStore, 
     agent_cb_handler) -> AgentExecutor:
+    llm_agent = ChatOpenAI(
+        temperature=0.9, 
+        # model="gpt-4",
+        # model="gpt-3.5-turbo-0613",
+        verbose=True,
+    )
     agent_cb_manager = AsyncCallbackManager([agent_cb_handler])
     search = GoogleSerperAPIWrapper()
     combine_prompt_template = """Given the following extracted parts of a long document and a question, create a final answer. 
@@ -108,7 +113,7 @@ def get_agent(
         retriever=vcs_swft.as_retriever(search_kwargs={"k":8}),
         chain_type_kwargs={
           "combine_prompt":COMBINE_PROMPT,
-		  "verbose":True,
+          "verbose":True,
         },
         verbose=True
         )
@@ -116,13 +121,24 @@ def get_agent(
         llm=llm, 
         chain_type="map_reduce", 
         chain_type_kwargs={
-        	"combine_prompt":COMBINE_PROMPT,
-			"verbose":True,
+            "combine_prompt":COMBINE_PROMPT,
+            "verbose":True,
          },
         retriever=vcs_path.as_retriever(search_kwargs={"k":8}),
         verbose=True
         )
+    headers = {
+        'Accepts': 'application/json',
+        'X-CMC_PRO_API_KEY': os.getenv("CMC_API_KEY"),
+    }
+    cmc_quotes_api=CMCQuotesChain.from_llm(llm=llm_agent,headers=headers,verbose=True)
     tools = [
+        Tool(
+            name = "Latest Quotes and Price System",
+            func=cmc_quotes_api.run,
+            description="When you need to inquire about the latest cryptocurrency market trends or the latest cryptocurrency prices, you can use this tool. The input should be a complete question, and use the original language.",
+            coroutine=cmc_quotes_api.arun
+        ),
         Tool(
             name = "QA SWFT System",
             func=doc_search_swft.run,
@@ -145,12 +161,7 @@ def get_agent(
             coroutine=search.arun
         ),
     ]
-    llm_agent = ChatOpenAI(
-        temperature=0.9, 
-        # model="gpt-4",
-        # model="gpt-3.5-turbo-0613",
-        verbose=True,
-    )
+    
     # memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
     memory = ConversationTokenBufferMemory(llm=llm_agent,memory_key="chat_history",max_token_limit=3000,return_messages=True)
     agent_excutor = initialize_agent(
