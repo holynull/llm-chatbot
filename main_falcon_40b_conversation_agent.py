@@ -95,7 +95,7 @@ def get_agent(
     vcs_path: VectorStore, 
     agent_cb_handler) -> AgentExecutor:
     llm_agent = ChatOpenAI(
-        temperature=0.9, 
+        temperature=0, 
         model="gpt-4",
         verbose=True,
     )
@@ -138,11 +138,17 @@ def get_agent(
     taapiRSIChain=TaapiRSIChain.from_llm(llm=llm,taapi_secret=os.getenv("TAAPI_KEY"),verbose=True)
     tools = [
         Tool(
-            name = "Cryptocurrency purchase and sale suggestion System",
+            name = "Cryptocurrency RSI (Relative Strength Index) System",
             func=taapiRSIChain.run,
-            description="When you need to give advice on the purchase and sale of a certain cryptocurrency, you can use this tool. The input should be a complete question.",
+            description="When you need to give analysis on the purchase and sale (RSI, Relative Strength Index) of a certain cryptocurrency, you can use this tool. The input should be a complete question.",
             coroutine=taapiRSIChain.arun
         ),
+		# Tool(
+        #     name = "Cryptocurrency Purchase and Sell Suggestion System",
+        #     func=taapiRSIChain.run,
+        #     description="When you need to give an advise on the purchase and sale (RSI, Relative Strength Index) of a certain cryptocurrency, you can use this tool. The input should be a complete question.",
+        #     coroutine=taapiRSIChain.arun
+        # ),
         Tool(
             name = "Cryptocurrency Latest Quotes System",
             func=cmc_quotes_api.run,
