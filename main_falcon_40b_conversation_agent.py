@@ -23,6 +23,7 @@ from langchain.callbacks.manager import AsyncCallbackManager
 from langchain.chat_models import ChatOpenAI
 from chain.cmc_quotes_chain import CMCQuotesChain
 from chain.cmc_quotes_historical_chain import CMCQuotesHistoricalChain 
+from chain.taapi_rsi_chain import TaapiRSIChain
 import os
 from datetime import datetime
 
@@ -134,7 +135,14 @@ def get_agent(
     }
     cmc_quotes_api=CMCQuotesChain.from_llm(llm=llm_agent,headers=headers,verbose=True)
     cmc_quotes_historical_api=CMCQuotesHistoricalChain.from_llm(llm=llm_agent,headers=headers,verbose=True)
+    taapiRSIChain=TaapiRSIChain.from_llm(llm=llm,taapi_secret=os.getenv("TAAPI_KEY"),verbose=True)
     tools = [
+        Tool(
+            name = "Cryptocurrency purchase and sale suggestion System",
+            func=taapiRSIChain.run,
+            description="When you need to give advice on the purchase and sale of a certain cryptocurrency, you can use this tool. The input should be a complete question.",
+            coroutine=taapiRSIChain.arun
+        ),
         Tool(
             name = "Cryptocurrency Latest Quotes System",
             func=cmc_quotes_api.run,
