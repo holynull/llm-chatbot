@@ -25,7 +25,7 @@ from chain import taapi_templates
 
 prompt=PromptTemplate(template=all_templates.quotes_chain_template,input_variables=["user_input"])
 
-class TaapiRSIChain(Chain):
+class TaapiCCIChain(Chain):
     """
     An example of a custom chain.
     """
@@ -141,8 +141,8 @@ class TaapiRSIChain(Chain):
         return "cmc_quotes_chain"
     
     @classmethod
-    def from_llm(cls,llm:BaseLanguageModel,taapi_secret: str,**kwargs: Any,)->TaapiRSIChain:
-        docs_template=PromptTemplate(input_variables=["taapi_key"],template=taapi_docs.RSI_API_DOCS)
+    def from_llm(cls,llm:BaseLanguageModel,taapi_secret: str,**kwargs: Any,)->TaapiCCIChain:
+        docs_template=PromptTemplate(input_variables=["taapi_key"],template=taapi_docs.CCI_API_DOCS)
         api_docs=docs_template.format(taapi_key=taapi_secret)
         now=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         system_time_str=f"It's {now} now.\n"
@@ -173,7 +173,7 @@ class TaapiRSIChain(Chain):
             request_timeout=60,
             **kwargs
         )
-        question_template=PromptTemplate(input_variables=["input"],template=taapi_templates.GENERATE_RSI_QUESTION)
+        question_template=PromptTemplate(input_variables=["input"],template=taapi_templates.GENERATE_CCI_QUESTION)
         questionGenChain=LLMChain(llm=api_res_llm,prompt=question_template,**kwargs)
         headers = {
             'Accepts': 'application/json',
@@ -186,7 +186,7 @@ class TaapiRSIChain(Chain):
             requests_wrapper = TextRequestsWrapper(headers=headers),
             **kwargs,
             )
-        conclusion_template=PromptTemplate(input_variables=["data"],template=taapi_templates.RSI_CONCLUSION) 
+        conclusion_template=PromptTemplate(input_variables=["data"],template=taapi_templates.CCI_CONCLUSION) 
         conclusion_chain=LLMChain(llm=api_res_llm,prompt=conclusion_template,**kwargs)
         seq_chain=SimpleSequentialChain(chains=[questionGenChain,api,conclusion_chain],**kwargs)
         return cls(llm=llm,seq_chain=seq_chain,**kwargs)
