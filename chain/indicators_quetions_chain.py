@@ -89,6 +89,8 @@ class IndicatorsQuestionsChain(Chain):
         original_question=response.generations[0][0].text
         try:
             res= self.seq_chain.run(original_question) 
+            if run_manager:
+                run_manager.on_text(res, color="green", end="\n", verbose=self.verbose)
             return {self.output_key: res}
         except Exception as err:
             # answer=await self.answer_chain.arun(question=inputs['user_input'],context=err.args)
@@ -126,6 +128,8 @@ class IndicatorsQuestionsChain(Chain):
         original_question=response.generations[0][0].text
         try:
             res=await self.seq_chain.arun(original_question) 
+            if run_manager:
+                await run_manager.on_text(res, color="green", end="\n", verbose=self.verbose)
             return {self.output_key: res}
         except Exception as err:
             # answer=await self.answer_chain.arun(question=inputs['user_input'],context=err.args)
@@ -147,7 +151,7 @@ class IndicatorsQuestionsChain(Chain):
         """+indicators
         PROMPT_TEMPLATE=PROMPT_TEMPLATE+"""\nPlease generats questions, to ask the latest index above of the cryptocurrency with its symbol in user's question.
         And you should generate the questions in JSON Array format as following:
-		["What is the btc's recent cci?","xxxxxxxx"]
+        ["What is the btc's recent cci?","xxxxxxxx"]
         User's Question: {question}
         You generations:"""
 
