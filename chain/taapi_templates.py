@@ -52,3 +52,40 @@ Content:
 {data}
 
 The analysis conclusion of buying and selling signals in the content is as follows:"""
+GENERATE_DMI_QUESTION="""The user's input is to ask for suggestions on the purchase or sale of a certain cryptocurrency. The DMI (Directional Movement Index) will provide the market signal of purchase or sale. Please change the user's input into a question about what the DMI of the cryptocurrency involved in the user's input is. If you don't know how to change, please answer that you don't know.
+User's input:
+{input}
+Question:
+"""
+DMI_CONCLUSION="""DMI:
+Average directional movement index
+The average directional movement index (ADX) was developed in 1978 by J. Welles Wilder as an indicator of trend strength in a series of prices of a financial instrument.[1] ADX has become a widely used indicator for technical analysts, and is provided as a standard in collections of indicators offered by various trading platforms.
+
+Calculation:
+The ADX is a combination of two other indicators developed by Wilder, the positive directional indicator (abbreviated +DI) and negative directional indicator (-DI).[2] The ADX combines them and smooths the result with a smoothed moving average.
+
+To calculate +DI and -DI, one needs price data consisting of high, low, and closing prices each period (typically each day). One first calculates the directional movement (+DM and -DM):
+
+UpMove = today's high − yesterday's high
+DownMove = yesterday's low − today's low
+if UpMove > DownMove and UpMove > 0, then +DM = UpMove, else +DM = 0
+if DownMove > UpMove and DownMove > 0, then -DM = DownMove, else -DM = 0
+After selecting the number of periods (Wilder used 14 days originally), +DI and -DI are:
+
++DI = 100 times the smoothed moving average of (+DM) divided by average true range
+-DI = 100 times the smoothed moving average of (-DM) divided by average true range
+The smoothed moving average is calculated over the number of periods selected, and the average true range is a smoothed average of the true ranges. Then:
+
+ADX = 100 times the smoothed moving average of the absolute value of (+DI − -DI) divided by (+DI + -DI)
+Variations of this calculation typically involve using different types of moving averages, such as an exponential moving average, a weighted moving average or an adaptive moving average.[3]
+
+Interpretation:
+The ADX does not indicate trend direction or momentum, only trend strength.[4] It is a lagging indicator; that is, a trend must have established itself before the ADX will generate a signal that a trend is under way. ADX will range between 0 and 100. Generally, ADX readings below 20 indicate trend weakness, and readings above 40 indicate trend strength. An extremely strong trend is indicated by readings above 50. Alternative interpretations have also been proposed and accepted among technical analysts. For example it has been shown how ADX is a reliable coincident indicator of classical chart pattern development, whereby ADX readings below 20 occur just prior to pattern breakouts.[5] The value of the ADX is proportional to the slope of the trend. The slope of the ADX line is proportional to the acceleration of the price movement (changing trend slope). If the trend is a constant slope then the ADX value tends to flatten out.[6]
+
+Timing:
+Various market timing methods have been devised using ADX. One of these methods is discussed by Alexander Elder in his book Trading for a Living. One of the best buy signals is when ADX turns up when below both Directional Lines and +DI is above -DI. You would sell when ADX turns back down.[7]
+
+Content:
+{data}
+
+The analysis conclusion of buying and selling signals in the content is as follows:"""

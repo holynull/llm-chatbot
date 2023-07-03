@@ -19,6 +19,12 @@ from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAI
 from langchain.chains import SequentialChain
 from langchain.requests import TextRequestsWrapper
+from chain.indicators_quetions_chain import IndicatorsQuestionsChain
+from chain.taapi_cci_chain import TaapiCCIChain
+from chain.taapi_rsi_chain import TaapiRSIChain
+import os
+import json
+import asyncio
 
 from chain import all_templates
 
@@ -39,6 +45,10 @@ class CMCQuotesChain(Chain):
     # cmc_quotes_api:APIChain 
 
     seq_chain:SequentialChain
+    indicator_questions_chain:IndicatorsQuestionsChain
+    cciChain:TaapiCCIChain
+    rsiChain:TaapiRSIChain
+    summaryChain:LLMChain
 
     class Config:
         """Configuration for this pydantic object."""
@@ -88,7 +98,12 @@ class CMCQuotesChain(Chain):
             run_manager.on_text(response.generations[0][0].text, color="green", end="\n", verbose=self.verbose)
         original_question=response.generations[0][0].text
         try:
-            res= self.seq_chain.run(original_question=original_question) 
+            quote= self.seq_chain.run(original_question=original_question) 
+            index_questions_str=self.indicator_questions_chain.run(original_question)
+            index_questions=json.loads(index_questions_str)
+            rsi_str=self.rsiChain.run(index_questions[0])
+            cci_str=self.cciChain.run(index_questions[1])
+            res=self.summaryChain.run(data0=quote,data1=rsi_str,data2=cci_str)
             return {self.output_key: res}
         except Exception as err:
             # answer=await self.answer_chain.arun(question=inputs['user_input'],context=err.args)
@@ -125,7 +140,12 @@ class CMCQuotesChain(Chain):
             await run_manager.on_text(response.generations[0][0].text, color="green", end="\n", verbose=self.verbose)
         original_question=response.generations[0][0].text
         try:
-            res=await self.seq_chain.arun(original_question=original_question) 
+            quote=await self.seq_chain.arun(original_question=original_question) 
+            index_questions_str=await self.indicator_questions_chain.arun(original_question)
+            index_questions=json.loads(index_questions_str)
+            rsi_str=await self.rsiChain.arun(index_questions[0])
+            cci_str=await self.cciChain.arun(index_questions[1])
+            res=await self.summaryChain.arun(data0=quote,data1=rsi_str,data2=cci_str)
             return {self.output_key: res}
         except Exception as err:
             # answer=await self.answer_chain.arun(question=inputs['user_input'],context=err.args)
@@ -193,5 +213,14 @@ class CMCQuotesChain(Chain):
             template=all_templates.api_question_template,
         )
         question_chain=LLMChain(llm=product_llm,prompt=question_template,output_key="question",**kwargs)
-        seq_chain=SequentialChain(chains=[product_chain,question_chain,api],input_variables=["original_question"])
-        return cls(llm=llm,seq_chain=seq_chain,**kwargs)
+        seq_chain=SequentialChain(chains=[product_chain,question_chain,api],input_variables=["original_question"],**kwargs)
+        indicator_question_chain=IndicatorsQuestionsChain.from_indicators(indicators="RSI,CCI",**kwargs)
+        rsi_chain=TaapiRSIChain.from_llm(llm=api_res_llm,taapi_secret=os.getenv("TAAPI_KEY"),**kwargs)
+        cci_chain=TaapiCCIChain.from_llm(llm=api_res_llm,taapi_secret=os.getenv("TAAPI_KEY"),**kwargs)
+        summary_template="""{data0}
+        {data1}
+        {data2}
+        The above is a context about some cryptocurrency's latest market trend. Please summarize market trend data,and give an investment suggestion."""
+        summary_prompt=PromptTemplate(input_variables=["data0","data1","data2"],template=summary_template)
+        summaryChain=LLMChain(llm=api_res_llm,prompt=summary_prompt,**kwargs)
+        return cls(llm=llm,seq_chain=seq_chain,indicator_questions_chain=indicator_question_chain,rsiChain=rsi_chain,cciChain=cci_chain,summaryChain=summaryChain,**kwargs)

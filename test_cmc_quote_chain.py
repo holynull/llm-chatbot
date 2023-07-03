@@ -26,5 +26,5 @@ headers = {
 # cmc_currency_map_api=APIChain.from_llm_and_api_docs(llm=llm,api_docs=all_templates.cmc_currency_map_api_doc,headers=headers,verbose=True)
 # cmc_quotes_api=APIChain.from_llm_and_api_docs(llm=llm,api_docs=all_templates.cmc_quote_lastest_api_doc,headers=headers,verbose=True)
 chain = cmc_quotes_chain.CMCQuotesChain.from_llm(llm=llm,headers=headers,verbose=True)
-input=input() 
+input=input("Send: ") 
 print(f"Output:{chain(inputs=input)}")
