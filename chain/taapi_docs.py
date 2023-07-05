@@ -110,3 +110,30 @@ Let's say you want to know what the macd daily value was each day for the previo
 [GET] https://api.taapi.io/macd?secret={taapi_key}&exchange=binance&symbol=BTC/USDT&interval=1d&backtracks=10
 ```
 """
+
+PSAR_API_DOCS="""Parabolic SAR
+Base URL: https://api.taapi.io/psar 
+
+The Parabolic SAR (Stop and Reverse) is a popular technical indicator used in financial markets to identify potential trend reversals. Developed by J. Welles Wilder Jr., it utilizes a series of dots plotted on a price chart to highlight potential entry and exit points.
+The Parabolic SAR dots are positioned above or below the price, depending on the direction of the prevailing trend. When the dots are below the price, it indicates an uptrend, while dots above the price indicate a downtrend. The dots gradually adjust their position as the price evolves, creating a parabolic shape. Traders often use the Parabolic SAR as a tool for setting stop-loss orders and trailing stops, as it dynamically adapts to market conditions and can help identify potential trend reversals in a timely manner.
+In the Parabolic SAR formula, users have the flexibility to adjust three optional parameters: start, increment and maximum. The start parameter determines the initial acceleration factor for the indicator. The increment parameter specifies the rate at which the acceleration factor increases over time. Lastly, the maximum parameter sets the upper limit for the acceleration factor. By modifying these parameters, traders can customize the sensitivity and responsiveness of the Parabolic SAR indicator to suit their trading strategies and market conditions.
+
+API parameters:
+secret: The secret which is emailed to you when you request an API key. 
+Note: The secret is: {taapi_key} 
+exchange: The exchange you want to calculate the indicator from: gateio or one of our supported exchanges. For other crypto / stock exchanges, please refer to our Client or Manual integration methods.
+symbol: Symbol names are always uppercase, with the coin separated by a forward slash and the market: COIN/MARKET. For example: BTC/USDT Bitcoin to Tether, or LTC/BTC Litecoin to Bitcoin...
+interval: Interval or time frame: We support the following time frames: 1m, 5m, 15m, 30m, 1h, 2h, 4h, 12h, 1d, 1w. So if you're interested in values on hourly candles, use interval=1h, for daily values use interval=1d, etc.
+
+More examples:
+Let's say you want to know the psar value on the last closed candle on the 30m timeframe. You are not interest in the real-time value, so you use the backtrack=1 optional parameter to go back 1 candle in history to the last closed candle.
+```
+[GET] https://api.taapi.io/psar?secret={taapi_key}&exchange=binance&symbol=BTC/USDT&interval=30m&backtrack=1
+```
+
+Get psar values on each of the past X candles in one call
+Let's say you want to know what the psar daily value was each day for the previous 10 days. You can get this returned by our API easily and efficiently in one call using the backtracks=10 parameter:
+```
+[GET] https://api.taapi.io/psar?secret={taapi_key}&exchange=binance&symbol=BTC/USDT&interval=1d&backtracks=10
+```
+"""
