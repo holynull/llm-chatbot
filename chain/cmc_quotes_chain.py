@@ -24,6 +24,7 @@ from chain.taapi_cci_chain import TaapiCCIChain
 from chain.taapi_rsi_chain import TaapiRSIChain
 from chain.taapi_dmi_chain import TaapiDMIChain
 from chain.taapi_macd_chain import TaapiMACDChain
+from chain.taapi_psar_chain import TaapiPSARChain
 import os
 import json
 
@@ -51,6 +52,7 @@ class CMCQuotesChain(Chain):
     rsiChain:TaapiRSIChain
     dmiChain:TaapiDMIChain
     macdChain:TaapiMACDChain
+    psarChain:TaapiPSARChain
     summaryChain:LLMChain
 
     class Config:
@@ -107,8 +109,9 @@ class CMCQuotesChain(Chain):
             rsi_str=self.rsiChain.run(index_questions[0])
             cci_str=self.cciChain.run(index_questions[1])
             dmi_str=self.dmiChain.arun(index_questions[2])
-            macd_str=self.macdChain.arun(index_questions[3])
-            res=self.summaryChain.run(data0=quote,data1=rsi_str,data2=cci_str,data3=dmi_str,data4=macd_str)
+            # macd_str=self.macdChain.arun(index_questions[3])
+            psar_str=self.psarChain.arun(index_questions[3])
+            res=self.summaryChain.run(data0=quote,data1=rsi_str,data2=cci_str,data3=dmi_str,data4=psar_str)
             return {self.output_key: res}
         except Exception as err:
             # answer=await self.answer_chain.arun(question=inputs['user_input'],context=err.args)
@@ -148,11 +151,12 @@ class CMCQuotesChain(Chain):
             quote=await self.seq_chain.arun(original_question=original_question) 
             index_questions_str=await self.indicator_questions_chain.arun(original_question)
             index_questions=json.loads(index_questions_str)
-            rsi_str=await self.rsiChain.arun(index_questions[0])
-            cci_str=await self.cciChain.arun(index_questions[1])
-            dmi_str=await self.dmiChain.arun(index_questions[2])
-            macd_str=await self.macdChain.arun(index_questions[3])
-            res=await self.summaryChain.arun(data0=quote,data1=rsi_str,data2=cci_str,data3=dmi_str,data4=macd_str)
+            rsi_str=await self.rsiChain.arun(index_questions["rsi"])
+            cci_str=await self.cciChain.arun(index_questions["cci"])
+            dmi_str=await self.dmiChain.arun(index_questions["dmi"])
+            # macd_str=await self.macdChain.arun(index_questions[3])
+            psar_str=await self.psarChain.arun(index_questions["psar"])
+            res=await self.summaryChain.arun(data0=quote,data1=rsi_str,data2=cci_str,data3=dmi_str,data4=psar_str)
             return {self.output_key: res}
         except Exception as err:
             # answer=await self.answer_chain.arun(question=inputs['user_input'],context=err.args)
@@ -221,17 +225,18 @@ class CMCQuotesChain(Chain):
         )
         question_chain=LLMChain(llm=product_llm,prompt=question_template,output_key="question",**kwargs)
         seq_chain=SequentialChain(chains=[product_chain,question_chain,api],input_variables=["original_question"],**kwargs)
-        indicator_question_chain=IndicatorsQuestionsChain.from_indicators(indicators="RSI,CCI,DMI,MACD",**kwargs)
+        indicator_question_chain=IndicatorsQuestionsChain.from_indicators(indicators="RSI,CCI,DMI,PSAR",**kwargs)
         rsi_chain=TaapiRSIChain.from_llm(llm=api_res_llm,taapi_secret=os.getenv("TAAPI_KEY"),**kwargs)
         cci_chain=TaapiCCIChain.from_llm(llm=api_res_llm,taapi_secret=os.getenv("TAAPI_KEY"),**kwargs)
         dmi_chain=TaapiDMIChain.from_llm(llm=api_res_llm,taapi_secret=os.getenv("TAAPI_KEY"),**kwargs)
         macd_chain=TaapiMACDChain.from_llm(llm=api_res_llm,taapi_secret=os.getenv("TAAPI_KEY"),**kwargs)
+        psar_chain=TaapiPSARChain.from_llm(llm=api_res_llm,taapi_secret=os.getenv("TAAPI_KEY"),**kwargs)
         summary_template="""{data0}
         {data1}
         {data2}
         {data3}
 		{data4}
-        The above is a context about some cryptocurrency's latest market trend. Please summarize market trend data,and give an investment suggestion."""
+        The above is a context about some cryptocurrency's latest market trend."""
         summary_prompt=PromptTemplate(input_variables=["data0","data1","data2","data3","data4"],template=summary_template)
         summaryChain=LLMChain(llm=api_res_llm,prompt=summary_prompt,**kwargs)
         return cls(llm=llm,
@@ -242,4 +247,5 @@ class CMCQuotesChain(Chain):
                    summaryChain=summaryChain,
                    dmiChain=dmi_chain,
 				   macdChain=macd_chain,
+				   psarChain=psar_chain,
                    **kwargs)

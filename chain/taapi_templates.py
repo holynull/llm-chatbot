@@ -22,7 +22,7 @@ Reversals: Finally, Cardwell discovered the existence of positive and negative r
 Content:
 {data}
 
-The analysis conclusion of buying and selling signals in the content is as follows:"""
+The analysis conclusion of market trend in the content is as follows:"""
 
 GENERATE_CCI_QUESTION="""The user's input is to ask for suggestions on the purchase or sale of a certain cryptocurrency. The CCI (Commodity Channel Index) will provide the market signal of purchase or sale. Please change the user's input into a question about what the CCI of the cryptocurrency involved in the user's input is. If you don't know how to change, please answer that you don't know.
 User's input:
@@ -51,7 +51,8 @@ Since Lambert's original guidelines, traders have also found the CCI valuable fo
 Content:
 {data}
 
-The analysis conclusion of buying and selling signals in the content is as follows:"""
+The analysis conclusion of market trend in the content is as follows:"""
+
 GENERATE_DMI_QUESTION="""The user's input is to ask for suggestions on the purchase or sale of a certain cryptocurrency. The DMI (Directional Movement Index) will provide the market signal of purchase or sale. Please change the user's input into a question about what the DMI of the cryptocurrency involved in the user's input is. If you don't know how to change, please answer that you don't know.
 User's input:
 {input}
@@ -88,7 +89,8 @@ Various market timing methods have been devised using ADX. One of these methods 
 Content:
 {data}
 
-The analysis conclusion of buying and selling signals in the content is as follows:"""
+The analysis conclusion of market trend in the content is as follows:"""
+
 GENERATE_MACD_QUESTION="""The user's input is to ask for suggestions on the purchase or sale of a certain cryptocurrency. The MACD (Moving Average Convergence Divergence) will provide the market signal of purchase or sale. Please change the user's input into a question about what the MACD of the cryptocurrency involved in the user's input is. If you don't know how to change, please answer that you don't know.
 User's input:
 {input}
@@ -145,7 +147,7 @@ A MACD crossover of the signal line indicates that the direction of the accelera
 Content:
 {data}
 
-The analysis conclusion of buying and selling signals in the content is as follows:"""
+The analysis conclusion of market trend in the content is as follows:"""
 
 GENERATE_PSAR_QUESTION="""The user's input is to ask for suggestions on the purchase or sale of a certain cryptocurrency. The PSAR (Parabolic SAR) will provide the market signal of purchase or sale. Please change the user's input into a question about what the PSAR of the cryptocurrency involved in the user's input is. If you don't know how to change, please answer that you don't know.
 User's input:
@@ -183,4 +185,4 @@ The parabolic SAR showed results at a 95% confidence level in a study of 17 year
 Content:
 {data}
 
-The analysis conclusion of buying and selling signals in the content is as follows:"""
+The analysis conclusion of market trend in the content is as follows:"""

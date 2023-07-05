@@ -150,8 +150,8 @@ class IndicatorsQuestionsChain(Chain):
         Index tools:
         """+indicators
         PROMPT_TEMPLATE=PROMPT_TEMPLATE+"""\nPlease generats questions, to ask the latest index above of the cryptocurrency with its symbol in user's question.
-        And you should generate the questions in JSON Array format as following:
-        ["What is the btc's recent cci?","xxxxxxxx"]
+        And you should generate the questions in JSON Object format as following:
+        {{"cci":"What is the btc's recent cci?","rsi":"xxxxrsi"}}
         User's Question: {question}
         You generations:"""
 
