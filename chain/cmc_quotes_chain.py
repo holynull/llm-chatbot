@@ -236,7 +236,7 @@ class CMCQuotesChain(Chain):
         {data2}
         {data3}
 		{data4}
-        The above is a context about some cryptocurrency's latest market trend."""
+        The above are the latest market trends of some Cryptocurrency and some index tool data. Please summarize the market trend and provide investment advice on this Cryptocurrency. I can use your advice to discuss with my financial advisor."""
         summary_prompt=PromptTemplate(input_variables=["data0","data1","data2","data3","data4"],template=summary_template)
         summaryChain=LLMChain(llm=api_res_llm,prompt=summary_prompt,**kwargs)
         return cls(llm=llm,

@@ -188,5 +188,5 @@ class TaapiCCIChain(Chain):
             )
         conclusion_template=PromptTemplate(input_variables=["data"],template=taapi_templates.CCI_CONCLUSION) 
         conclusion_chain=LLMChain(llm=api_res_llm,prompt=conclusion_template,**kwargs)
-        seq_chain=SimpleSequentialChain(chains=[questionGenChain,api,conclusion_chain],**kwargs)
+        seq_chain=SimpleSequentialChain(chains=[questionGenChain,api],**kwargs)
         return cls(llm=llm,seq_chain=seq_chain,**kwargs)
