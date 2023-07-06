@@ -192,3 +192,9 @@ User's input:
 {input}
 Question:
 """
+
+GENERATE_CMF_QUESTION="""The user's input is to ask for suggestions on the purchase or sale of a certain cryptocurrency. The CMF (Chaikin Money Flow) will provide the market signal of purchase or sale. Please change the user's input into a question about what the CMF of the cryptocurrency involved in the user's input is. If you don't know how to change, please answer that you don't know.
+User's input:
+{input}
+Question:
+"""
