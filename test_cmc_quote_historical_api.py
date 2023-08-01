@@ -40,5 +40,5 @@ API_URL_PROMPT = PromptTemplate(
     template=API_URL_PROMPT_TEMPLATE,
 )
 chain=APIChain.from_llm_and_api_docs(llm=llm,api_docs=all_templates.cmc_quote_historical_api_doc,headers=headers,verbose=True)
-input=input("Send:\n") 
+input=input("Test cmc historical quotes api: ") 
 print(f"Output:{chain(inputs=input)}")

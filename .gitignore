@@ -143,3 +143,4 @@ langchain.readthedocs.io/
 *.pkl
 embeddings/
 chroma/
+.vscode/
