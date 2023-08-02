@@ -24,7 +24,12 @@ from langchain.prompts import PromptTemplate
 import taapi_docs
 import cmc_api_docs
 import os
-import asyncio 
+import asyncio
+from langchain.callbacks.base import AsyncCallbackHandler
+from pydantic import BaseModel, validator
+from uuid import UUID
+from langchain.schema import AgentFinish
+
 
 INPUT_TYPE = TypeVar("INPUT_TYPE", bound=Union[str, List[str]])
 OUTPUT_TYPE = TypeVar("OUTPUT_TYPE", bound=Union[str, List[List[float]]])
@@ -77,6 +82,7 @@ class ContentHandlerBase(Generic[INPUT_TYPE, OUTPUT_TYPE]):
 
 class LLMContentHandler(ContentHandlerBase[str, str]):
     """Content handler for LLM class."""
+
 
 class SagemakerLLM(LLM):
     """Wrapper around custom Sagemaker Inference Endpoints.
@@ -267,8 +273,10 @@ class SagemakerLLM(LLM):
             # stop tokens when making calls to the sagemaker endpoint.
             text = enforce_stop_tokens(text, stop)
         if run_manager:
-            run_manager.on_text(text=text, color="yellow", end="\n", verbose=self.verbose)
-        return text 
+            run_manager.on_text(
+                text=text, color="yellow", end="\n", verbose=self.verbose
+            )
+        return text
 
     async def _acall(
         self,
@@ -293,7 +301,9 @@ class SagemakerLLM(LLM):
         _model_kwargs = self.model_kwargs or {}
         _endpoint_kwargs = self.endpoint_kwargs or {}
         if run_manager:
-            await run_manager.on_text(prompt, color="yellow", end="\n", verbose=self.verbose)
+            await run_manager.on_text(
+                prompt, color="yellow", end="\n", verbose=self.verbose
+            )
         body = self.content_handler.transform_input(prompt, _model_kwargs)
         content_type = self.content_handler.content_type
         accepts = self.content_handler.accepts
@@ -318,8 +328,11 @@ class SagemakerLLM(LLM):
             # stop tokens when making calls to the sagemaker endpoint.
             text = enforce_stop_tokens(text, stop)
         if run_manager:
-            await run_manager.on_text(text=text, color="yellow", end="\n", verbose=self.verbose)
-        return text 
+            await run_manager.on_text(
+                text=text, color="yellow", end="\n", verbose=self.verbose
+            )
+        return text
+
 
 class ContentHandler(LLMContentHandler):
     content_type = "application/json"
@@ -520,7 +533,7 @@ class Llama2APIChain(APIChain):
                 },
             },
             content_handler=content_handler,
-            verbose=kwargs["verbose"],
+            # verbose=kwargs["verbose"],
         )
 
         llm_gen_resp = SagemakerLLM(
@@ -543,7 +556,7 @@ class Llama2APIChain(APIChain):
                 },
             },
             content_handler=content_handler,
-            verbose=kwargs["verbose"],
+            # verbose=kwargs["verbose"],
         )
 
         API_URL_PROMPT_TEMPLATE = """API Documentation:
@@ -708,12 +721,64 @@ Question
 {question}
 ```
 
-
-Please organize the above content into a complete paragraph first. Then use the content to answer the question. Finally, give your anlysis from the content, and give some investment advise as far as possible. 
-
-Answer:"""
+Please organize the above content into a complete article. The required content includes answers to questions using the above content, as well as analysis of the above market data and investment suggestions.
+Here is the article:
+"""
         prompt = PromptTemplate.from_template(PROMPT_TEMPLATE)
         return cls(llm=llm, prompt=prompt, **kwargs)
+
+
+class ChatResponse(BaseModel):
+    """Chat response schema."""
+
+    sender: str
+    message: str
+    type: str
+
+    @validator("sender")
+    def sender_must_be_bot_or_you(cls, v):
+        if v not in ["bot", "you"]:
+            raise ValueError("sender must be bot or you")
+        return v
+
+    @validator("type")
+    def validate_message_type(cls, v):
+        if v not in ["start", "stream", "end", "error", "info"]:
+            raise ValueError("type must be start, stream or end")
+        return v
+
+
+class ChainCallbackHandler(AsyncCallbackHandler):
+    """Callback handler for question generation."""
+
+    def __init__(self, websocket, sta_txt: str, end_txt: str):
+        self.websocket = websocket
+        self.end_txt = end_txt
+        self.sta_txt = sta_txt
+
+    async def on_chain_start(
+        self,
+        serialized: Dict[str, Any],
+        inputs: Dict[str, Any],
+        *,
+        run_id: UUID,
+        parent_run_id: Optional[UUID] = None,
+        **kwargs: Any,
+    ) -> None:
+        resp = ChatResponse(sender="bot", message=self.sta_txt, type="info")
+        await self.websocket.send_json(resp.dict())
+
+    async def on_chain_end(
+        self,
+        outputs: Dict[str, Any],
+        *,
+        run_id: UUID,
+        parent_run_id: Optional[UUID] = None,
+        **kwargs: Any,
+    ) -> None:
+        resp = ChatResponse(sender="bot", message=self.end_txt, type="info")
+        await self.websocket.send_json(resp.dict())
+
 
 class MarketTrendAndInvestmentAdviseToolChain(Chain):
     """
@@ -725,18 +790,20 @@ class MarketTrendAndInvestmentAdviseToolChain(Chain):
     llm: BaseLanguageModel
     output_key: str = "text"  #: :meta private:
 
-    iq_chain:IndicatorsQuestionsChain
+    iq_chain: IndicatorsQuestionsChain
 
-    rsi_chain : Llama2APIChain
-    cci_chain : Llama2APIChain
-    dmi_chain : Llama2APIChain
-    psar_chain : Llama2APIChain
-    stochrsi_chain : Llama2APIChain
-    cmf_chain : Llama2APIChain
+    rsi_chain: Llama2APIChain
+    cci_chain: Llama2APIChain
+    dmi_chain: Llama2APIChain
+    psar_chain: Llama2APIChain
+    stochrsi_chain: Llama2APIChain
+    cmf_chain: Llama2APIChain
 
-    latest_quote_chain:Llama2APIChain
+    latest_quote_chain: Llama2APIChain
 
-    mt_chain:MarketTrendChain
+    mt_chain: MarketTrendChain
+
+    websocket: Any
 
     class Config:
         """Configuration for this pydantic object."""
@@ -769,7 +836,7 @@ class MarketTrendAndInvestmentAdviseToolChain(Chain):
         # This is just an example that mimics LLMChain
         prompt_value = self.prompt.format_prompt(**inputs)
         if run_manager:
-             run_manager.on_text(
+            run_manager.on_text(
                 prompt_value.to_string(), color="green", end="\n", verbose=self.verbose
             )
         # Whenever you call a language model, or another chain, you should pass
@@ -777,7 +844,7 @@ class MarketTrendAndInvestmentAdviseToolChain(Chain):
         # any callbacks that are registered on the outer run.
         # You can always obtain a callback manager for this by calling
         # `run_manager.get_child()` as shown below.
-        response =  self.llm.generate_prompt(
+        response = self.llm.generate_prompt(
             [prompt_value], callbacks=run_manager.get_child() if run_manager else None
         )
 
@@ -785,26 +852,40 @@ class MarketTrendAndInvestmentAdviseToolChain(Chain):
         # methods on the `run_manager`, as shown below. This will trigger any
         # callbacks that are registered for that event.
         if run_manager:
-             run_manager.on_text(
+            run_manager.on_text(
                 response.generations[0][0].text,
                 color="yellow",
                 end="\n",
                 verbose=self.verbose,
             )
-        question=response.generations[0][0].text
-        indicator_questions_json =  self.iq_chain.run(question)
+        question = response.generations[0][0].text
+        indicator_questions_json = self.iq_chain.run(question)
         index_questions = json.loads(indicator_questions_json)
-        
-        rsi_res =  self.rsi_chain.run(index_questions["RSI"])
-        cci_res =  self.cci_chain.run(index_questions["CCI"])
-        dmi_res =  self.dmi_chain.run(index_questions["DMI"])
-        psar_res =  self.psar_chain.run(index_questions["PSAR"])
-        stochrsi_res =  self.stochrsi_chain.run(index_questions["STOCHRSI"])
-        cmf_res =  self.cmf_chain.run(index_questions["CMF"])
-        latest_quote_res= self.latest_quote_chain.run(question)
-        
-        data=rsi_res+"\n"+cci_res+"\n"+dmi_res+"\n"+psar_res+"\n"+stochrsi_res+"\n"+cmf_res+"\n"+latest_quote_res
-        market_trend_res= self.mt_chain.run(question=question,data=data)
+
+        rsi_res = self.rsi_chain.run(index_questions["RSI"])
+        cci_res = self.cci_chain.run(index_questions["CCI"])
+        dmi_res = self.dmi_chain.run(index_questions["DMI"])
+        psar_res = self.psar_chain.run(index_questions["PSAR"])
+        stochrsi_res = self.stochrsi_chain.run(index_questions["STOCHRSI"])
+        cmf_res = self.cmf_chain.run(index_questions["CMF"])
+        latest_quote_res = self.latest_quote_chain.run(question)
+
+        data = (
+            rsi_res
+            + "\n"
+            + cci_res
+            + "\n"
+            + dmi_res
+            + "\n"
+            + psar_res
+            + "\n"
+            + stochrsi_res
+            + "\n"
+            + cmf_res
+            + "\n"
+            + latest_quote_res
+        )
+        market_trend_res = self.mt_chain.run(question=question, data=data)
 
         return {self.output_key: market_trend_res}
 
@@ -839,32 +920,104 @@ class MarketTrendAndInvestmentAdviseToolChain(Chain):
                 end="\n",
                 verbose=self.verbose,
             )
-        question=response.generations[0][0].text
-        indicator_questions_json = await self.iq_chain.arun(question)
+        question = response.generations[0][0].text
+        callbacks = None
+        if self.websocket != None:
+            callbacks = [
+                ChainCallbackHandler(
+                    websocket=self.websocket,
+                    sta_txt="Generating Index Request...",
+                    end_txt="Generated Index Request",
+                )
+            ]
+        indicator_questions_json = await self.iq_chain.arun(
+            question, callbacks=callbacks
+        )
         index_questions = json.loads(indicator_questions_json)
 
-        tasks=[
-         self.rsi_chain.arun(index_questions["RSI"]),
-         self.cci_chain.arun(index_questions["CCI"]),
-         self.dmi_chain.arun(index_questions["DMI"]),
-         self.psar_chain.arun(index_questions["PSAR"]),
-         self.stochrsi_chain.arun(index_questions["STOCHRSI"]),
-         self.cmf_chain.arun(index_questions["CMF"]),
-         self.latest_quote_chain.arun(question),
-        ] 
-        resp=await asyncio.gather(*tasks)
-        # rsi_res = await self.rsi_chain.arun(index_questions["RSI"])
-        # cci_res = await self.cci_chain.arun(index_questions["CCI"])
-        # dmi_res = await self.dmi_chain.arun(index_questions["DMI"])
-        # psar_res = await self.psar_chain.arun(index_questions["PSAR"])
-        # stochrsi_res = await self.stochrsi_chain.arun(index_questions["STOCHRSI"])
-        # cmf_res = await self.cmf_chain.arun(index_questions["CMF"])
-        # latest_quote_res=await self.latest_quote_chain.arun(question)
+        callbacks_rsi = None
+        callbacks_cci = None
+        callbacks_dmi = None
+        callbacks_psar = None
+        callbacks_stochrsi = None
+        callbacks_cmf = None
+        callbacks_quote = None
+        if self.websocket != None:
+            callbacks_rsi = [
+                ChainCallbackHandler(
+                    websocket=self.websocket,
+                    sta_txt="Loading RSI...",
+                    end_txt="Get RSI data finish.",
+                )
+            ]
+            callbacks_cci = [
+                ChainCallbackHandler(
+                    websocket=self.websocket,
+                    sta_txt="Loading CCI...",
+                    end_txt="Get CCI data finish.",
+                )
+            ]
+            callbacks_dmi = [
+                ChainCallbackHandler(
+                    websocket=self.websocket,
+                    sta_txt="Loading DMI...",
+                    end_txt="Get DMI data finish.",
+                )
+            ]
+            callbacks_psar = [
+                ChainCallbackHandler(
+                    websocket=self.websocket,
+                    sta_txt="Loading PSAR...",
+                    end_txt="Get PSAR data finish.",
+                )
+            ]
+            callbacks_stochrsi = [
+                ChainCallbackHandler(
+                    websocket=self.websocket,
+                    sta_txt="Loading STOCHRSI...",
+                    end_txt="Get STOCHRSI data finish.",
+                )
+            ]
+            callbacks_cmf = [
+                ChainCallbackHandler(
+                    websocket=self.websocket,
+                    sta_txt="Loading CMF...",
+                    end_txt="Get CMF data finish.",
+                )
+            ]
+            callbacks_quote = [
+                ChainCallbackHandler(
+                    websocket=self.websocket,
+                    sta_txt="Loading Latest Quote...",
+                    end_txt="Get Latest Quote data finish.",
+                )
+            ]
+        tasks = [
+            self.rsi_chain.arun(index_questions["RSI"], callbacks=callbacks_rsi),
+            self.cci_chain.arun(index_questions["CCI"], callbacks=callbacks_cci),
+            self.dmi_chain.arun(index_questions["DMI"], callbacks=callbacks_dmi),
+            self.psar_chain.arun(index_questions["PSAR"], callbacks=callbacks_psar),
+            self.stochrsi_chain.arun(
+                index_questions["STOCHRSI"], callbacks=callbacks_stochrsi
+            ),
+            self.cmf_chain.arun(index_questions["CMF"], callbacks=callbacks_cmf),
+            self.latest_quote_chain.arun(question, callbacks=callbacks_quote),
+        ]
+        resp = await asyncio.gather(*tasks)
 
-        # data=rsi_res+"\n"+cci_res+"\n"+dmi_res+"\n"+psar_res+"\n"+stochrsi_res+"\n"+cmf_res+"\n"+latest_quote_res
-        data="\n".join(resp)
-        market_trend_res=await self.mt_chain.arun(question=question,data=data)
-
+        data = "\n".join(resp)
+        callbacks_rr = None
+        if self.websocket != None:
+            callbacks_rr = [
+                ChainCallbackHandler(
+                    websocket=self.websocket,
+                    sta_txt="Generating Research Report...",
+                    end_txt="Please wait for final answer...",
+                )
+            ]
+        market_trend_res = await self.mt_chain.arun(
+            question=question, data=data, callbacks=callbacks_rr
+        )
         return {self.output_key: market_trend_res}
 
     @property
@@ -874,14 +1027,13 @@ class MarketTrendAndInvestmentAdviseToolChain(Chain):
     @classmethod
     def from_create(
         cls,
+        websocket,
         **kwargs: Any,
     ) -> Chain:
-        prompt_template = (
-"""User may ask some cryptocurrency's market trend.
+        prompt_template = """User may ask some cryptocurrency's market trend.
 Please generate a complete question in English, using user's input below.
 User's input:{user_input}
 Complete question:"""
-)
         content_handler = ContentHandler()
         llama2_01 = SagemakerLLM(
             endpoint_name="huggingface-pytorch-tgi-inference-2023-07-24-07-23-15-934",
@@ -915,7 +1067,7 @@ Complete question:"""
                     # "top_p": 0.9,
                     # "top_k": 10,
                     "repetition_penalty": 1.03,
-                    "max_new_tokens": 1024,
+                    "max_new_tokens": 2048,
                     "temperature": 0.9,
                     "return_full_text": False,
                     # "max_length":2048,
@@ -930,7 +1082,8 @@ Complete question:"""
         prompt = PromptTemplate.from_template(prompt_template)
 
         iq_chain = IndicatorsQuestionsChain.from_indicators(
-            indicators="RSI,CCI,DMI,PSAR,STOCHRSI,CMF", **kwargs, 
+            indicators="RSI,CCI,DMI,PSAR,STOCHRSI,CMF",
+            **kwargs,
         )
 
         taapi_key = os.getenv("TAAPI_KEY")
@@ -950,37 +1103,51 @@ Complete question:"""
         psar_api_docs = PromptTemplate.from_template(taapi_docs.PSAR_API_DOCS).format(
             taapi_key=taapi_key
         )
-        stochrsi_api_docs = PromptTemplate.from_template(taapi_docs.STOCHRSI_API_DOCS).format(
-            taapi_key=taapi_key
-        )
+        stochrsi_api_docs = PromptTemplate.from_template(
+            taapi_docs.STOCHRSI_API_DOCS
+        ).format(taapi_key=taapi_key)
         cmf_api_docs = PromptTemplate.from_template(taapi_docs.CMF_API_DOCS).format(
             taapi_key=taapi_key
         )
         rsi_chain = Llama2APIChain.from_docs(
-            api_docs=rsi_api_docs, headers=headers,**kwargs, 
+            api_docs=rsi_api_docs,
+            headers=headers,
+            **kwargs,
         )
         cci_chain = Llama2APIChain.from_docs(
-            api_docs=cci_api_docs, headers=headers, **kwargs,
+            api_docs=cci_api_docs,
+            headers=headers,
+            **kwargs,
         )
         dmi_chain = Llama2APIChain.from_docs(
-            api_docs=dmi_api_docs, headers=headers, **kwargs,
+            api_docs=dmi_api_docs,
+            headers=headers,
+            **kwargs,
         )
         psar_chain = Llama2APIChain.from_docs(
-            api_docs=psar_api_docs, headers=headers, **kwargs,
+            api_docs=psar_api_docs,
+            headers=headers,
+            **kwargs,
         )
         stochrsi_chain = Llama2APIChain.from_docs(
-            api_docs=stochrsi_api_docs, headers=headers, **kwargs,
+            api_docs=stochrsi_api_docs,
+            headers=headers,
+            **kwargs,
         )
         cmf_chain = Llama2APIChain.from_docs(
-            api_docs=cmf_api_docs, headers=headers, **kwargs,
+            api_docs=cmf_api_docs,
+            headers=headers,
+            **kwargs,
         )
 
         headers = {
-          'Accepts': 'application/json',
-          'X-CMC_PRO_API_KEY': os.getenv("CMC_API_KEY"),
+            "Accepts": "application/json",
+            "X-CMC_PRO_API_KEY": os.getenv("CMC_API_KEY"),
         }
         latest_quote_chain = Llama2APIChain.from_docs(
-            api_docs=cmc_api_docs.CMC_QUOTE_LASTEST_API_DOC, headers=headers, **kwargs,
+            api_docs=cmc_api_docs.CMC_QUOTE_LASTEST_API_DOC,
+            headers=headers,
+            **kwargs,
         )
 
         gpt4 = ChatOpenAI(
@@ -988,11 +1155,11 @@ Complete question:"""
             temperature=0.9,
             **kwargs,
         )
-        mt_chain=MarketTrendChain.from_llm(llm=llama2_09,**kwargs)
+        mt_chain = MarketTrendChain.from_llm(llm=llama2_01, **kwargs)
 
         return cls(
             llm=llama2_01,
-            iq_chain=iq_chain, 
+            iq_chain=iq_chain,
             rsi_chain=rsi_chain,
             cci_chain=cci_chain,
             dmi_chain=dmi_chain,
@@ -1001,5 +1168,7 @@ Complete question:"""
             cmf_chain=cmf_chain,
             latest_quote_chain=latest_quote_chain,
             mt_chain=mt_chain,
-            prompt=prompt, 
-            **kwargs,)
+            prompt=prompt,
+            websocket=websocket,
+            **kwargs,
+        )
