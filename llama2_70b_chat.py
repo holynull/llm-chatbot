@@ -243,6 +243,10 @@ class SagemakerLLMChat(BaseChatModel):
         except Exception as e:
             raise ValueError(f"Error raised by inference endpoint: {e}")
         response_json = json.loads(response["Body"].read().decode("utf-8"))
+        if run_manager:
+            run_manager.on_text(
+                response_json, color="yellow", end="\n", verbose=self.verbose
+            )
         generations = []
         for res in response_json:
             message = _convert_dict_to_message(res["generation"])
@@ -299,11 +303,79 @@ class SagemakerLLMChat(BaseChatModel):
             )
         except Exception as e:
             raise ValueError(f"Error raised by inference endpoint: {e}")
-
         response_json = json.loads(response["Body"].read().decode("utf-8"))
+        if run_manager:
+            await run_manager.on_text(
+                response_json, color="yellow", end="\n", verbose=self.verbose
+            )
         generations = []
         for res in response_json:
             message = _convert_dict_to_message(res["generation"])
             gen = ChatGeneration(message=message)
             generations.append(gen)
         return ChatResult(generations=generations)
+
+from langchain.chains import LLMChain
+from langchain.prompts import (
+    ChatPromptTemplate,
+    MessagesPlaceholder,
+    SystemMessagePromptTemplate,
+    HumanMessagePromptTemplate,
+)
+from langchain.memory import ConversationBufferMemory
+from langchain.callbacks.base import BaseCallbackManager, BaseCallbackHandler
+
+
+class LLama270bChatChain(LLMChain):
+    """
+    An example of a custom chain.
+    """
+
+    """Prompt object to use."""
+    llm: SagemakerLLMChat
+
+    prompt: ChatPromptTemplate
+
+    @property
+    def _chain_type(self) -> str:
+        return "llama2_70b_chat_chain"
+
+    @classmethod
+    def from_system_message(
+        cls,
+        message: SystemMessage = SystemMessagePromptTemplate.from_template(
+            "You are a nice chatbot having a conversation with a human."
+        ),
+        **kwargs: Any,
+    ) -> LLMChain:
+        llama2 = SagemakerLLMChat(
+            endpoint_name="meta-textgeneration-llama-2-70b-f-2023-08-03-07-02-32-301",
+            # credentials_profile_name="default",
+            region_name="us-east-1",
+            model_kwargs={
+                "parameters": {
+                    # "do_sample": True,
+                    "top_p": 0.9,
+                    # "top_k": 10,
+                    # "repetition_penalty": 1.03,
+                    "max_new_tokens": 2048,
+                    "temperature": 0.9,
+                    # "return_full_text": False,
+                    # "max_length":2048,
+                    # "truncate": 2048,
+                    # "num_return_sequences":2000,
+                    # "stop": ["\n"],
+                },
+            },
+            verbose=kwargs["verbose"],
+        )
+        prompt = ChatPromptTemplate(
+            messages=[
+                message,
+                # The `variable_name` here is what must align with memory
+                MessagesPlaceholder(variable_name="chat_history"),
+                HumanMessagePromptTemplate.from_template("{input}"),
+            ]
+        )
+        memory = ConversationBufferMemory(memory_key="chat_history",return_messages=True)
+        return cls(llm=llama2, prompt=prompt, memory=memory, **kwargs)
