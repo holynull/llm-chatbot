@@ -72,7 +72,6 @@ class CallbackHandler(BaseCallbackHandler):
         parent_run_id: Optional[UUID] = None,
         **kwargs: Any,
     ) -> Any:
-        print(f"###########{outputs}")
         resp = ChatResponse(sender="bot", message=outputs["text"], type="stream")
         await self.websocket.send_json(resp.dict())
 

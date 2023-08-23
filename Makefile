@@ -15,6 +15,8 @@ start-llama2-agent:
         uvicorn main_llama2_conversation_agent:app --reload --host "" --port 9003 >> /dev/null 2>&1 &
 start-llama2-70b-conversation:
         uvicorn main_llama2_70b_conversation:app --reload --host "" --port 9004 >> /dev/null 2>&1 &
+start-starloom:
+        uvicorn main_starloom:app --reload --host "" --port 9005 >> /dev/null 2>&1 &
 
 
 .PHONY: format
