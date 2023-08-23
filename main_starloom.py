@@ -2,13 +2,14 @@
 import logging
 from pathlib import Path
 import sys
-from fastapi import  FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
+from langchain import OpenAI
 from langchain.callbacks.base import AsyncCallbackHandler
 from schemas import ChatResponse
 from dotenv import load_dotenv
 from typing import Any
-from starloom_chain import StarLoomChain
+from starloom_chain import StarLoomChain, CalendarChain
 
 
 logging.basicConfig(level=logging.INFO)
@@ -43,8 +44,8 @@ class StreamingLLMCallbackHandler(AsyncCallbackHandler):
         resp = ChatResponse(sender="bot", message=token, type="stream")
         await self.websocket.send_json(resp.dict())
 
-from langchain.chat_models import ChatOpenAI
 
+from langchain.chat_models import ChatOpenAI
 
 
 @app.websocket("/chat")
@@ -55,13 +56,19 @@ async def websocket_endpoint(websocket: WebSocket):
     # Ensure `langchain-server` is running
     # qa_chain = get_chain(vectorstore, question_handler, stream_handler, tracing=True)
     from langchain.callbacks.manager import AsyncCallbackManager
+
     gpt4 = ChatOpenAI(
-        model_name="gpt-4", 
-        temperature=0.9, 
+        model_name="gpt-4",
+        temperature=0.9,
         streaming=True,
-        callback_manager=AsyncCallbackManager([StreamingLLMCallbackHandler(websocket=websocket)]),
-        verbose=True
+        callback_manager=AsyncCallbackManager(
+            [StreamingLLMCallbackHandler(websocket=websocket)]
+        ),
+        verbose=True,
     )
+    gpt35_1 = OpenAI(temperature=0.1, verbose=True)
+    calendar_chain = CalendarChain.from_llm(llm=gpt35_1, verbose=True)
+
     conversationChain = StarLoomChain.from_llm(
         llm=gpt4,
         verbose=True,
@@ -79,7 +86,9 @@ async def websocket_endpoint(websocket: WebSocket):
             # Construct a response
             start_resp = ChatResponse(sender="bot", message="", type="start")
             await websocket.send_json(start_resp.dict())
-            await conversationChain.arun(question)
+            lunar_date = await calendar_chain.arun(question)
+            nquestion = lunar_date + "\n" + question
+            await conversationChain.arun(nquestion)
 
             end_resp = ChatResponse(sender="bot", message="", type="end")
             await websocket.send_json(end_resp.dict())
