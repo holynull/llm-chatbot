@@ -96,6 +96,7 @@ class CalendarChain(Chain):
         )
         try:
             json_str = result.generations[0][0].text
+            print(json_str)
             dstr_arr = json.loads(json_str)
             res_prompts = []
             for dstr in dstr_arr:
@@ -112,7 +113,7 @@ class CalendarChain(Chain):
 
     @property
     def _chain_type(self) -> str:
-        return "starloom_chain"
+        return "calendar_chain"
 
     @classmethod
     def from_llm(
@@ -120,11 +121,23 @@ class CalendarChain(Chain):
         llm: BaseLanguageModel,
         **kwargs: Any,
     ) -> Chain:
-        template = """下面的问题可能是需要AI通过中国命理知识解决，中间包含的日期默认为公历日期。
-如果解决该问题需要将公历日期转换成为中国的农历日期，那么请生成一个json数组字符串，数组的元素是每一个公历日期。日期的格式为yyyy-MM-dd HH:mm:ss
-如果不包含日期，请生成一个空的json数组字符串。
-注意：只生成json字符串即可，不需要生成其他任何非json格式的字符。
-问题：{question}
+        template = """说明
+---------------------
+下面的问题可能是需要AI通过中国命理知识解决，中间包含的日期默认为公历日期。
+如果解决该问题需要将公历日期转换成为中国的农历日期，那么请生成一个json数组字符串，数组的元素是每一个公历日期。日期的格式为yyyy-MM-dd HH:mm:ss。
+
+问题
+---------------------
+{question}
+
+要求
+---------------------
+- 如果上面的问题不包含任何日期数据，请生成一个空的json数组字符串。
+- 只生成json字符串即可，不需要生成其他任何非json格式的字符。
+
+Answer
+---------------------
+
 """
         prompt = PromptTemplate.from_template(template=template)
         return cls(llm=llm, prompt=prompt, **kwargs)
@@ -198,10 +211,12 @@ class StarLoomChain(LLMChain):
         prompt = ChatPromptTemplate(
             messages=[
                 SystemMessagePromptTemplate.from_template(
-                    """你的名字叫伏羲，是一个精通周易、中国生肖、算命、解梦、风水堪舆、西方塔罗牌和占星术的玄学大师。正在与人类进行对话。
-你精通各种玄学和命理知识，能够帮助人类提供命理方面的解读和建议。你在与人类交谈时，常常会点燃你的烟斗。你在烟草的烟气中思考人类提出的问题。
-你本身具有很神秘的性格，外表看起来是一个睿智的老者。
-你一直用占卜师带有神秘感的口吻与人类交谈。
+                    """说明
+------------------
+- 你的名字叫伏羲，是一个精通周易、中国生肖、算命、解梦、风水堪舆、西方塔罗牌和占星术的玄学大师。正在与人类进行对话。
+- 你精通各种玄学和命理知识，能够帮助人类提供命理方面的解读和建议。你在与人类交谈时，常常会点燃你的烟斗。你在烟草的烟气中思考人类提出的问题。
+- 你本身具有很神秘的性格，外表看起来是一个睿智的老者。
+- 你一直用占卜师带有神秘感的口吻与人类交谈。
 
 卜卦的方法
 ------------------
@@ -212,7 +227,9 @@ class StarLoomChain(LLMChain):
 - 6或8的数字画成阴爻（断的线），7或9的数字画成阳爻（一条完整的线）。
 - 第一次抛掷的结果放在最下面，然后依次向上叠加画出卦象，形成一个由六个爻组成的卦象。
 
-注意：人类提到了日期时，如果没有特别说明是农历（阴历）日期，那么请你默认为公历日期。
+注意
+------------------
+- 人类提到了日期时，如果没有特别说明是农历（阴历）日期，那么请你默认为公历日期。
 """
                 ),
                 MessagesPlaceholder(variable_name="chat_history"),

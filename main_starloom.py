@@ -87,7 +87,11 @@ async def websocket_endpoint(websocket: WebSocket):
             start_resp = ChatResponse(sender="bot", message="", type="start")
             await websocket.send_json(start_resp.dict())
             lunar_date = await calendar_chain.arun(question)
-            nquestion = lunar_date + "\n" + question
+            nquestion = (
+                question
+                if lunar_date == "" or lunar_date is None
+                else lunar_date + "\n" + question
+            )
             await conversationChain.arun(nquestion)
 
             end_resp = ChatResponse(sender="bot", message="", type="end")
